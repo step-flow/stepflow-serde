@@ -34,7 +34,7 @@ pub enum ActionSerde {
 }
 
 impl ActionSerde {
-    pub fn to_action(self, action_id: ActionId, varstore: &ObjectStore<Box<dyn Var + Send + Sync>, VarId>) -> Result<Box<dyn Action + Sync + Send>, Error> {
+    pub fn to_action(self, action_id: ActionId, var_store: &ObjectStore<Box<dyn Var + Send + Sync>, VarId>) -> Result<Box<dyn Action + Sync + Send>, Error> {
         match self {
             ActionSerde::Url { base_url } => {
                 let base_uri = Uri::try_from(base_url).map_err(|_e| InvalidValue::BadFormat)?;
@@ -42,7 +42,7 @@ impl ActionSerde {
             }
             ActionSerde::SetData { data, after_attempt } => {
                 let statedata_serde = StateDataSerde::new(data);
-                let state_data = statedata_serde.to_statedata(varstore)?;
+                let state_data = statedata_serde.to_statedata(var_store)?;
                 Ok(SetDataAction::new(action_id, state_data, after_attempt.into()).boxed())
             }
             ActionSerde::HtmlForm {

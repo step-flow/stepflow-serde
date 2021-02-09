@@ -79,8 +79,8 @@ mod tests {
         let mut session = create_session(JSON).unwrap();
         let name_stepid = session.step_store().get_by_name("name").unwrap().id().clone();
         let email_stepid = session.step_store().get_by_name("email").unwrap().id().clone();
-        let _firstname_var_id = session.varstore().get_by_name("first_name").unwrap().id().clone();
-        let _email_waited_varid = session.varstore().get_by_name("email_waited").unwrap().id().clone();
+        let _firstname_var_id = session.var_store().get_by_name("first_name").unwrap().id().clone();
+        let _email_waited_varid = session.var_store().get_by_name("email_waited").unwrap().id().clone();
         let url_action_id = session.action_store().id_from_name("$all").unwrap();
 
         // advance to first step (name)
@@ -97,14 +97,14 @@ mod tests {
         let mut data_name = HashMap::new();
         data_name.insert("first_name".to_owned(), "billy".to_owned());
         data_name.insert("last_name".to_owned(), "bob".to_owned());
-        let statedata_name = StateDataSerde::new(data_name).to_statedata(session.varstore()).unwrap();
+        let statedata_name = StateDataSerde::new(data_name).to_statedata(session.var_store()).unwrap();
         let name_advance_success = session.advance(Some((&name_stepid,  statedata_name))).unwrap();
         assert_eq!(name_advance_success, AdvanceBlockedOn::ActionStartWith(url_action_id, "/base-path/email".parse::<UriValue>().unwrap().boxed()));
 
         // put in email and try advancing -- fail setdata (attempt #2) because email waited setdata action hasn't fired so get URL action result
         let mut data_email = HashMap::new();
         data_email.insert("email".to_owned(), "a@b.com".to_owned());
-        let statedata_email = StateDataSerde::new(data_email).to_statedata(session.varstore()).unwrap();
+        let statedata_email = StateDataSerde::new(data_email).to_statedata(session.var_store()).unwrap();
         let name_advance_success = session.advance(Some((&email_stepid,  statedata_email))).unwrap();
         assert_eq!(name_advance_success, AdvanceBlockedOn::ActionStartWith(url_action_id, "/base-path/email".parse::<UriValue>().unwrap().boxed()));
 

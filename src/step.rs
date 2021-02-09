@@ -32,15 +32,15 @@ fn names_to_ids<T, TID>(store: &ObjectStore<T, TID>, names: &Vec<String>) -> Res
 }
 
 impl StepSerde {
-    pub fn input_var_ids(&self, varstore: &ObjectStore<Box<dyn Var + Send + Sync>, VarId>) -> Result<Option<Vec<VarId>>, IdError<VarId>> {
+    pub fn input_var_ids(&self, var_store: &ObjectStore<Box<dyn Var + Send + Sync>, VarId>) -> Result<Option<Vec<VarId>>, IdError<VarId>> {
         match &self.input_vars {
-            Some(input_vars) => Ok(Some(names_to_ids(varstore, &input_vars)?)),
+            Some(input_vars) => Ok(Some(names_to_ids(var_store, &input_vars)?)),
             None => Ok(None),
         }
     }
 
-    pub fn output_var_ids(&self, varstore: &ObjectStore<Box<dyn Var + Send + Sync>, VarId>) -> Result<Vec<VarId>, IdError<VarId>> {
-        names_to_ids(varstore, &self.output_vars)
+    pub fn output_var_ids(&self, var_store: &ObjectStore<Box<dyn Var + Send + Sync>, VarId>) -> Result<Vec<VarId>, IdError<VarId>> {
+        names_to_ids(var_store, &self.output_vars)
     }
 
     pub fn to_step(self, step_id: StepId, input_var_ids: Option<Vec<VarId>>, output_var_ids: Vec<VarId>) -> Result<(Step, Option<Vec<String>>), IdError<StepId>> {

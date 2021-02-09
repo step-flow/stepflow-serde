@@ -37,7 +37,7 @@ impl TryFrom<SessionSerde> for Session {
 
         // Create Vars
         for (var_name, var_serde) in session_serde.vars {
-            session.varstore_mut().insert_new(Some(var_name), |var_id| {
+            session.var_store_mut().insert_new(Some(var_name), |var_id| {
                 Ok(var_serde.to_var(var_id))
             })?;
         }
@@ -48,9 +48,9 @@ impl TryFrom<SessionSerde> for Session {
         // 2. once all the steps are registered, assign the child sub-steps
         let mut stepid_to_substep_names = HashMap::with_capacity(session_serde.steps.len());
         for (step_name, step_serde) in session_serde.steps {
-            let varstore = session.varstore();
-            let input_var_ids = step_serde.input_var_ids(varstore)?;
-            let output_var_ids = step_serde.output_var_ids(varstore)?;
+            let var_store = session.var_store();
+            let input_var_ids = step_serde.input_var_ids(var_store)?;
+            let output_var_ids = step_serde.output_var_ids(var_store)?;
 
             session.step_store_mut().insert_new(Some(step_name), |step_id| {
                 let (step, substep_names) = step_serde.to_step(step_id, input_var_ids, output_var_ids)?;
@@ -73,7 +73,7 @@ impl TryFrom<SessionSerde> for Session {
         // Set actions
         for (step_name, action_serde) in session_serde.step_actions {
             let action_id = session.action_store().reserve_id()?;
-            let action = action_serde.to_action(action_id, session.varstore())?;
+            let action = action_serde.to_action(action_id, session.var_store())?;
             session.action_store().register(Some(step_name.clone()), action)?;
             if step_name.eq(NAME_GLOBAL_ACTION) {
                 session.set_action_for_step(action_id, None)?;
