@@ -20,8 +20,7 @@ pub struct SessionSerde {
     pub session_id: SessionId,
     vars: HashMap<String, VarSerde>,
     steps: HashMap<String, StepSerde>,
-    #[serde(rename(deserialize = "stepActions"))]
-    step_actions: HashMap<String, ActionSerde>,
+    actions: HashMap<String, ActionSerde>,
 }
 
 impl TryFrom<SessionSerde> for Session {
@@ -32,7 +31,7 @@ impl TryFrom<SessionSerde> for Session {
             session_serde.session_id,
             session_serde.vars.len(),
             session_serde.steps.len(),
-            session_serde.step_actions.len()
+            session_serde.actions.len()
         );
 
         // Create Vars
@@ -71,7 +70,7 @@ impl TryFrom<SessionSerde> for Session {
         session.push_root_substep(root_step_id);
 
         // Set actions
-        for (step_name, action_serde) in session_serde.step_actions {
+        for (step_name, action_serde) in session_serde.actions {
             let action_id = session.action_store().reserve_id()?;
             let action = action_serde.to_action(action_id, session.var_store())?;
             session.action_store().register_named::<String>(step_name.clone(), action)?;

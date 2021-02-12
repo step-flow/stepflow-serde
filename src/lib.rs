@@ -52,7 +52,7 @@ mod tests {
                "outputVars": ["email", "email_waited"]
            }
         },
-        "stepActions": {
+        "actions": {
             "$all": {
                 "type": "uri",
                 "baseUri": "/base-path"
