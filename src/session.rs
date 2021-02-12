@@ -37,7 +37,7 @@ impl TryFrom<SessionSerde> for Session {
 
         // Create Vars
         for (var_name, var_serde) in session_serde.vars {
-            session.var_store_mut().insert_new(Some(var_name), |var_id| {
+            session.var_store_mut().insert_new_named(var_name, |var_id| {
                 Ok(var_serde.to_var(var_id))
             })?;
         }
@@ -52,7 +52,7 @@ impl TryFrom<SessionSerde> for Session {
             let input_var_ids = step_serde.input_var_ids(var_store)?;
             let output_var_ids = step_serde.output_var_ids(var_store)?;
 
-            session.step_store_mut().insert_new(Some(step_name), |step_id| {
+            session.step_store_mut().insert_new_named(step_name, |step_id| {
                 let (step, substep_names) = step_serde.to_step(step_id, input_var_ids, output_var_ids)?;
                 stepid_to_substep_names.insert(step.id().clone(), substep_names);
                 Ok(step)
@@ -74,7 +74,7 @@ impl TryFrom<SessionSerde> for Session {
         for (step_name, action_serde) in session_serde.step_actions {
             let action_id = session.action_store().reserve_id()?;
             let action = action_serde.to_action(action_id, session.var_store())?;
-            session.action_store().register(Some(step_name.clone()), action)?;
+            session.action_store().register_named::<String>(step_name.clone(), action)?;
             if step_name.eq(NAME_GLOBAL_ACTION) {
                 session.set_action_for_step(action_id, None)?;
             } else {
