@@ -4,7 +4,7 @@ use serde::{Deserialize};
 use stepflow::{data::InvalidValue, prelude::*};
 use stepflow::object::ObjectStore;
 use stepflow::data::VarId;
-use stepflow::action::{SetDataAction, ActionId, UrlStepAction, Uri, HtmlFormAction, HtmlFormConfig};
+use stepflow::action::{SetDataAction, ActionId, UriAction, Uri, HtmlFormAction, HtmlFormConfig};
 use stepflow::Error;
 use super::StateDataSerde;
 
@@ -13,8 +13,8 @@ use super::StateDataSerde;
 #[serde(rename_all = "camelCase", tag = "type")]
 pub enum ActionSerde {
     #[serde(rename_all = "camelCase")]
-    Url {
-        base_url: String,
+    Uri {
+        base_uri: String,
     },
     #[serde(rename_all = "camelCase")]
     SetData {
@@ -36,9 +36,9 @@ pub enum ActionSerde {
 impl ActionSerde {
     pub fn to_action(self, action_id: ActionId, var_store: &ObjectStore<Box<dyn Var + Send + Sync>, VarId>) -> Result<Box<dyn Action + Sync + Send>, Error> {
         match self {
-            ActionSerde::Url { base_url } => {
-                let base_uri = Uri::try_from(base_url).map_err(|_e| InvalidValue::BadFormat)?;
-                Ok(UrlStepAction::new(action_id, base_uri).boxed())
+            ActionSerde::Uri { base_uri } => {
+                let base_uri = Uri::try_from(base_uri).map_err(|_e| InvalidValue::BadFormat)?;
+                Ok(UriAction::new(action_id, base_uri).boxed())
             }
             ActionSerde::SetData { data, after_attempt } => {
                 let statedata_serde = StateDataSerde::new(data);
