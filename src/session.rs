@@ -15,8 +15,6 @@ const NAME_ROOT_STEP: &str = "$root";
 #[derive(Debug, Deserialize)]
 #[serde(rename = "Session")]
 pub struct SessionSerde {
-    #[serde(skip)]
-    pub session_id: SessionId,
     vars: Option<HashMap<String, VarSerde>>,
     steps: HashMap<String, StepSerde>,
     actions: HashMap<String, ActionSerde>,
@@ -27,9 +25,9 @@ impl SessionSerde {
     ///
     /// if `allow_implicit_var` is `true`, when a [`Step`](stepflow::step::Step) is parsed and uses a variable that has
     /// not been declared in the `vars` section, a [`StringVar`](stepflow::data::StringVar) will be created.
-    pub fn into_session<T>(self, allow_implicit_var: bool) -> Result<Session, SerdeError<T>> {
+    pub fn into_session<T>(self, session_id: SessionId, allow_implicit_var: bool) -> Result<Session, SerdeError<T>> {
         let mut session = Session::with_capacity(
-            self.session_id,
+            session_id,
             if let Some(vars) = &self.vars { vars.len() } else { 0 },
             self.steps.len(),
             self.actions.len()

@@ -1,6 +1,39 @@
-pub mod prelude {
-    pub use std::convert::TryFrom;
-}
+//! Provides structures for [`Serde`](::serde) to simplify deserialization of a [`Session`](stepflow::Session)
+//!
+//! The main object to use with `Serde` is [`SessionSerde`].
+//!
+//! # Examples
+//! ```
+//! # use stepflow::SessionId;
+//! # use stepflow_serde::SessionSerde;
+//! const JSON: &str = r#"
+//! {
+//!     "vars": {
+//!         "name": "String",
+//!         "email": "Email"
+//!     },
+//!     "steps": {
+//!        "$root": {
+//!            "substeps": ["nameStep", "emailStep"],
+//!            "outputs": ["name","email"]
+//!        },
+//!        "nameStep": {
+//!            "outputs": ["name"]
+//!        },
+//!        "emailStep": {
+//!            "outputs": ["email"]
+//!        }
+//!     },
+//!     "actions": {
+//!         "$all": { "type": "htmlForm" }
+//!     }
+//! }"#;
+//!
+//! // Parse JSON to a Session
+//! let session_serde: SessionSerde = serde_json::from_str(JSON).unwrap();
+//! let session = session_serde.into_session::<serde_json::Error>(SessionId::new(0), false).unwrap();
+//!
+//! ```
 
 mod session;
 pub use session::SessionSerde;
@@ -68,9 +101,8 @@ mod tests {
     }"#;
 
     pub fn create_session(json: &str, allow_implicit_var: bool) -> Result<Session, SerdeError<serde_json::Error>> {
-        let mut session_serde: SessionSerde = serde_json::from_str(json).map_err(|e| SerdeError::InvalidFormat(e))?;
-        session_serde.session_id = test_id!(SessionId);
-        let session = session_serde.into_session(allow_implicit_var)?;
+        let session_serde: SessionSerde = serde_json::from_str(json).map_err(|e| SerdeError::InvalidFormat(e))?;
+        let session = session_serde.into_session(test_id!(SessionId), allow_implicit_var)?;
         Ok(session)
     }
 
