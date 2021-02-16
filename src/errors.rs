@@ -6,13 +6,13 @@ use stepflow::object::IdError;
 use stepflow::Error;
 
 #[derive(Debug)]
-pub enum SerdeError {
+pub enum SerdeError<T> {
   Error(Error),
   MissingRootStep,
-  Other,
+  InvalidFormat(T),
 }
 
-impl From<Error> for SerdeError {
+impl<T> From<Error> for SerdeError<T> {
   fn from(err: Error) -> Self {
     SerdeError::Error(err)
   }
@@ -20,7 +20,7 @@ impl From<Error> for SerdeError {
 
 macro_rules! from_id_error {
   ($id_type:ident) => {
-    impl From<IdError<$id_type>> for SerdeError {
+    impl<T> From<IdError<$id_type>> for SerdeError<T> {
       fn from(err: IdError<$id_type>) -> Self {
         SerdeError::Error(Error::$id_type(err))
       }

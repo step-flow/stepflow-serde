@@ -1,10 +1,10 @@
 use std::hash::Hash;
 use serde::Deserialize;
 use stepflow::prelude::*;
-use stepflow::data::VarId;
+use stepflow::data::{VarId, StringVar};
 use stepflow::object::{ObjectStore, IdError};
 use stepflow::step::{Step, StepId};
-use stepflow::Error;
+use stepflow::{Session, Error};
 
 
 #[derive(Debug, Deserialize)]
@@ -12,9 +12,9 @@ pub struct StepSerde {
     name: Option<String>,
     #[serde(rename(deserialize = "substeps"))]
     substep_names: Option<Vec<String>>,
-    #[serde(rename(deserialize = "inputVars"))]
+    #[serde(rename(deserialize = "inputs"))]
     input_vars: Option<Vec<String>>,
-    #[serde(rename(deserialize = "outputVars"))]
+    #[serde(rename(deserialize = "outputs"))]
     output_vars: Vec<String>,
 }
 
@@ -41,6 +41,24 @@ impl StepSerde {
 
     pub fn output_var_ids(&self, var_store: &ObjectStore<Box<dyn Var + Send + Sync>, VarId>) -> Result<Vec<VarId>, IdError<VarId>> {
         names_to_ids(var_store, &self.output_vars)
+    }
+
+    fn ensure_all_vars_by_name(&self, names: &Vec<String>, session: &mut Session) -> Result<(), IdError<VarId>> {
+        let var_store = session.var_store_mut();
+        for name in names {
+            if matches!(var_store.get_by_name(name), None) {
+                var_store.insert_new_named(name.clone(), |id| Ok(StringVar::new(id).boxed()))?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn ensure_all_vars(&self, session: &mut Session) -> Result<(), IdError<VarId>> {
+        if let Some(input_names) = &self.input_vars {
+            self.ensure_all_vars_by_name(input_names, session)?;
+        }
+        self.ensure_all_vars_by_name(&self.output_vars, session)?;
+        Ok(())
     }
 
     pub fn to_step(self, step_id: StepId, input_var_ids: Option<Vec<VarId>>, output_var_ids: Vec<VarId>) -> Result<(Step, Option<Vec<String>>), IdError<StepId>> {

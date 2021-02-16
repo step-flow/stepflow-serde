@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use serde::{Deserialize};
 use stepflow::prelude::*;
 use stepflow::object::IdError;
@@ -18,36 +17,48 @@ const NAME_ROOT_STEP: &str = "$root";
 pub struct SessionSerde {
     #[serde(skip)]
     pub session_id: SessionId,
-    vars: HashMap<String, VarSerde>,
+    vars: Option<HashMap<String, VarSerde>>,
     steps: HashMap<String, StepSerde>,
     actions: HashMap<String, ActionSerde>,
 }
 
-impl TryFrom<SessionSerde> for Session {
-    type Error = SerdeError;
-
-    fn try_from(session_serde: SessionSerde) -> Result<Self, Self::Error> {
+impl SessionSerde {
+    /// Converts into a [`Session`]
+    ///
+    /// if `allow_implicit_var` is `true`, when a [`Step`](stepflow::step::Step) is parsed and uses a variable that has
+    /// not been declared in the `vars` section, a [`StringVar`](stepflow::data::StringVar) will be created.
+    pub fn into_session<T>(self, allow_implicit_var: bool) -> Result<Session, SerdeError<T>> {
         let mut session = Session::with_capacity(
-            session_serde.session_id,
-            session_serde.vars.len(),
-            session_serde.steps.len(),
-            session_serde.actions.len()
+            self.session_id,
+            if let Some(vars) = &self.vars { vars.len() } else { 0 },
+            self.steps.len(),
+            self.actions.len()
         );
 
         // Create Vars
-        for (var_name, var_serde) in session_serde.vars {
-            session.var_store_mut().insert_new_named(var_name, |var_id| {
-                Ok(var_serde.to_var(var_id))
-            })?;
+        if let Some(vars) = self.vars {
+            for (var_name, var_serde) in vars {
+                session.var_store_mut().insert_new_named(var_name, |var_id| {
+                    Ok(var_serde.to_var(var_id))
+                })?;
+            }
+        }
+
+        // Create implicit vars from Steps
+        if allow_implicit_var {
+            for (_step_name, step_serde) in &self.steps {
+                step_serde.ensure_all_vars(&mut session)?;
+            }
         }
 
         // Create Steps
         // steps in 2 passes.
         // 1. register just the steps, no sub-steps since it's possible they'll be registered later
         // 2. once all the steps are registered, assign the child sub-steps
-        let mut stepid_to_substep_names = HashMap::with_capacity(session_serde.steps.len());
-        for (step_name, step_serde) in session_serde.steps {
+        let mut stepid_to_substep_names = HashMap::with_capacity(self.steps.len());
+        for (step_name, step_serde) in self.steps {
             let var_store = session.var_store();
+            
             let input_var_ids = step_serde.input_var_ids(var_store)?;
             let output_var_ids = step_serde.output_var_ids(var_store)?;
 
@@ -70,7 +81,7 @@ impl TryFrom<SessionSerde> for Session {
         session.push_root_substep(root_step_id);
 
         // Set actions
-        for (step_name, action_serde) in session_serde.actions {
+        for (step_name, action_serde) in self.actions {
             let action_id = session.action_store().reserve_id()?;
             let action = action_serde.to_action(action_id, session.var_store())?;
             session.action_store().register_named::<String>(step_name.clone(), action)?;

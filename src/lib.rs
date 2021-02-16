@@ -24,9 +24,9 @@ use action::ActionSerde;
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use std::convert::TryFrom;
+    use serde_json::json;
     use stepflow_test_util::test_id;
-    use stepflow::data::{UriValue};
+    use stepflow::data::{StringVar, UriValue};
     use stepflow::{Session, SessionId, AdvanceBlockedOn};
     use stepflow::prelude::*;
     use super::{ SessionSerde, StateDataSerde, SerdeError};
@@ -43,13 +43,13 @@ mod tests {
         "steps": {
            "$root": {
                "substeps": ["name", "email"],
-               "outputVars": ["first_name","last_name","email", "email_waited"]
+               "outputs": ["first_name","last_name","email", "email_waited"]
            },
            "name": {
-               "outputVars": ["first_name","last_name"]
+               "outputs": ["first_name","last_name"]
            },
            "email": {
-               "outputVars": ["email", "email_waited"]
+               "outputs": ["email", "email_waited"]
            }
         },
         "actions": {
@@ -67,16 +67,16 @@ mod tests {
         }
     }"#;
 
-    pub fn create_session(json: &str) -> Result<Session, SerdeError> {
-        let mut session_serde: SessionSerde = serde_json::from_str(json).map_err(|_e| SerdeError::Other)?;
+    pub fn create_session(json: &str, allow_implicit_var: bool) -> Result<Session, SerdeError<serde_json::Error>> {
+        let mut session_serde: SessionSerde = serde_json::from_str(json).map_err(|e| SerdeError::InvalidFormat(e))?;
         session_serde.session_id = test_id!(SessionId);
-        let session = Session::try_from(session_serde)?;
+        let session = session_serde.into_session(allow_implicit_var)?;
         Ok(session)
     }
 
     #[test]
     fn derserialize() {
-        let mut session = create_session(JSON).unwrap();
+        let mut session = create_session(JSON, false).unwrap();
         let name_stepid = session.step_store().get_by_name("name").unwrap().id().clone();
         let email_stepid = session.step_store().get_by_name("email").unwrap().id().clone();
         let _firstname_var_id = session.var_store().get_by_name("first_name").unwrap().id().clone();
@@ -115,8 +115,37 @@ mod tests {
 
     #[test]
     fn session_ids() {
-        let session1 = create_session(JSON).unwrap();
-        let session2 = create_session(JSON).unwrap();
+        let session1 = create_session(JSON, false).unwrap();
+        let session2 = create_session(JSON, false).unwrap();
         assert_ne!(session1.id(), session2.id());
+    }
+
+    #[test]
+    fn implicit_vars() {
+        let json = json!({
+            "steps": {
+                "$root": {
+                    "substeps": ["step1"],
+                    "outputs": ["test_output"]
+                },
+                "step1": { "inputs": ["test_input"], "outputs": ["test_output"] }
+            },
+            "actions": {
+                "$all": { "type": "htmlForm" }
+            }
+        });
+        let json = json.to_string();
+
+        // expect error when we don't allow implicit var
+        assert!(matches!(create_session(&json[..], false), Err(_)));
+
+        // create session
+        let session = create_session(&json[..], true).unwrap();
+
+        assert_eq!(session.var_store().iter_names().count(), 2);
+        let input_var = session.var_store().get_by_name("test_input").unwrap();
+        assert!(input_var.is::<StringVar>());
+        let output_var = session.var_store().get_by_name("test_output").unwrap();
+        assert!(output_var.is::<StringVar>());
     }
 }
