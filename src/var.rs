@@ -1,5 +1,5 @@
 use serde::{Deserialize};
-use stepflow::data::{BoolVar, EmailVar, Var, VarId, StringVar, TrueVar, UriVar};
+use stepflow::data::{BoolVar, EmailVar, Var, VarId, StringVar, TrueVar};
 
 
 #[derive(Debug, Deserialize)]
@@ -7,7 +7,6 @@ pub enum VarSerde {
     String,
     Email,
     True,
-    Uri,
     Bool,
 }
 
@@ -17,7 +16,6 @@ impl VarSerde {
             VarSerde::String => StringVar::new(var_id).boxed(),
             VarSerde::Email => EmailVar::new(var_id).boxed(),
             VarSerde::True => TrueVar::new(var_id).boxed(),
-            VarSerde::Uri => UriVar::new(var_id).boxed(),
             VarSerde::Bool => BoolVar::new(var_id).boxed(),
         }
     }

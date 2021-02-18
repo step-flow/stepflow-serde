@@ -59,7 +59,7 @@ mod tests {
     use std::collections::HashMap;
     use serde_json::json;
     use stepflow_test_util::test_id;
-    use stepflow::data::{StringVar, UriValue};
+    use stepflow::data::{StringVar, StringValue};
     use stepflow::{Session, SessionId, AdvanceBlockedOn};
     use stepflow::prelude::*;
     use super::{ SessionSerde, StateDataSerde, SerdeError};
@@ -87,8 +87,9 @@ mod tests {
         },
         "actions": {
             "$all": {
-                "type": "uri",
-                "baseUri": "/base-path"
+                "type": "stringTemplate",
+                "template": "/base-path/{{step}}",
+                "escapeFor": "uri"
             },
             "email": {
                 "type": "setData",
@@ -107,7 +108,7 @@ mod tests {
     }
 
     #[test]
-    fn derserialize() {
+    fn deserialize() {
         let mut session = create_session(JSON, false).unwrap();
         let name_stepid = session.step_store().get_by_name("name").unwrap().id().clone();
         let email_stepid = session.step_store().get_by_name("email").unwrap().id().clone();
@@ -117,13 +118,13 @@ mod tests {
 
         // advance to first step (name)
         let name_advance = session.advance(None).unwrap();
-        assert_eq!(name_advance, AdvanceBlockedOn::ActionStartWith(uri_action_id, "/base-path/name".parse::<UriValue>().unwrap().boxed()));
+        assert_eq!(name_advance, AdvanceBlockedOn::ActionStartWith(uri_action_id, "/base-path/name".parse::<StringValue>().unwrap().boxed()));
 
         // try advancing without setting name and fail
         let name_advance_fail = session.advance(None).unwrap();
         assert_eq!(
             name_advance_fail, 
-            AdvanceBlockedOn::ActionStartWith(uri_action_id, "/base-path/name".parse::<UriValue>().unwrap().boxed()));
+            AdvanceBlockedOn::ActionStartWith(uri_action_id, "/base-path/name".parse::<StringValue>().unwrap().boxed()));
 
         // advance to next step (email) - fail setdata (attempt #1) so get URI action result
         let mut data_name = HashMap::new();
@@ -131,14 +132,14 @@ mod tests {
         data_name.insert("last_name".to_owned(), "bob".to_owned());
         let statedata_name = StateDataSerde::new(data_name).to_statedata(session.var_store()).unwrap();
         let name_advance_success = session.advance(Some((&name_stepid,  statedata_name))).unwrap();
-        assert_eq!(name_advance_success, AdvanceBlockedOn::ActionStartWith(uri_action_id, "/base-path/email".parse::<UriValue>().unwrap().boxed()));
+        assert_eq!(name_advance_success, AdvanceBlockedOn::ActionStartWith(uri_action_id, "/base-path/email".parse::<StringValue>().unwrap().boxed()));
 
         // put in email and try advancing -- fail setdata (attempt #2) because email waited setdata action hasn't fired so get URI action result
         let mut data_email = HashMap::new();
         data_email.insert("email".to_owned(), "a@b.com".to_owned());
         let statedata_email = StateDataSerde::new(data_email).to_statedata(session.var_store()).unwrap();
         let name_advance_success = session.advance(Some((&email_stepid,  statedata_email))).unwrap();
-        assert_eq!(name_advance_success, AdvanceBlockedOn::ActionStartWith(uri_action_id, "/base-path/email".parse::<UriValue>().unwrap().boxed()));
+        assert_eq!(name_advance_success, AdvanceBlockedOn::ActionStartWith(uri_action_id, "/base-path/email".parse::<StringValue>().unwrap().boxed()));
 
         // try advancing again -- success with setdata firing and we're finished
         let name_advance_success = session.advance(None).unwrap();
