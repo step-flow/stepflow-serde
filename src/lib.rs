@@ -114,17 +114,17 @@ mod tests {
         let email_stepid = session.step_store().get_by_name("email").unwrap().id().clone();
         let _firstname_var_id = session.var_store().get_by_name("first_name").unwrap().id().clone();
         let _email_waited_varid = session.var_store().get_by_name("email_waited").unwrap().id().clone();
-        let uri_action_id = session.action_store().id_from_name("$all").unwrap();
+        let uri_action_id = session.action_store().id_from_name("$all").unwrap().clone();
 
         // advance to first step (name)
         let name_advance = session.advance(None).unwrap();
-        assert_eq!(name_advance, AdvanceBlockedOn::ActionStartWith(uri_action_id, "/base-path/name".parse::<StringValue>().unwrap().boxed()));
+        assert_eq!(name_advance, AdvanceBlockedOn::ActionStartWith(uri_action_id.clone(), "/base-path/name".parse::<StringValue>().unwrap().boxed()));
 
         // try advancing without setting name and fail
         let name_advance_fail = session.advance(None).unwrap();
         assert_eq!(
             name_advance_fail, 
-            AdvanceBlockedOn::ActionStartWith(uri_action_id, "/base-path/name".parse::<StringValue>().unwrap().boxed()));
+            AdvanceBlockedOn::ActionStartWith(uri_action_id.clone(), "/base-path/name".parse::<StringValue>().unwrap().boxed()));
 
         // advance to next step (email) - fail setdata (attempt #1) so get URI action result
         let mut data_name = HashMap::new();
@@ -132,14 +132,14 @@ mod tests {
         data_name.insert("last_name".to_owned(), "bob".to_owned());
         let statedata_name = StateDataSerde::new(data_name).to_statedata(session.var_store()).unwrap();
         let name_advance_success = session.advance(Some((&name_stepid,  statedata_name))).unwrap();
-        assert_eq!(name_advance_success, AdvanceBlockedOn::ActionStartWith(uri_action_id, "/base-path/email".parse::<StringValue>().unwrap().boxed()));
+        assert_eq!(name_advance_success, AdvanceBlockedOn::ActionStartWith(uri_action_id.clone(), "/base-path/email".parse::<StringValue>().unwrap().boxed()));
 
         // put in email and try advancing -- fail setdata (attempt #2) because email waited setdata action hasn't fired so get URI action result
         let mut data_email = HashMap::new();
         data_email.insert("email".to_owned(), "a@b.com".to_owned());
         let statedata_email = StateDataSerde::new(data_email).to_statedata(session.var_store()).unwrap();
         let name_advance_success = session.advance(Some((&email_stepid,  statedata_email))).unwrap();
-        assert_eq!(name_advance_success, AdvanceBlockedOn::ActionStartWith(uri_action_id, "/base-path/email".parse::<StringValue>().unwrap().boxed()));
+        assert_eq!(name_advance_success, AdvanceBlockedOn::ActionStartWith(uri_action_id.clone(), "/base-path/email".parse::<StringValue>().unwrap().boxed()));
 
         // try advancing again -- success with setdata firing and we're finished
         let name_advance_success = session.advance(None).unwrap();

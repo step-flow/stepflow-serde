@@ -80,9 +80,9 @@ impl SessionSerde {
 
         // Set actions
         for (step_name, action_serde) in self.actions {
-            let action_id = session.action_store().reserve_id()?;
+            let action_id = session.action_store_mut().reserve_id();
             let action = action_serde.to_action(action_id, session.var_store())?;
-            session.action_store().register_named::<String>(step_name.clone(), action)?;
+            session.action_store_mut().register_named::<String>(step_name.clone(), action)?;
             if step_name.eq(NAME_GLOBAL_ACTION) {
                 session.set_action_for_step(action_id, None)?;
             } else {

@@ -20,3 +20,19 @@ impl VarSerde {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use stepflow_test_util::test_id;
+    use super::{VarSerde, BoolVar, VarId};
+
+    #[test]
+    fn basic() {
+        let json = json!("Bool");
+        let var_serde: VarSerde = serde_json::from_value(json).unwrap();
+        let var = var_serde.to_var(test_id!(VarId));
+        assert!(var.is::<BoolVar>());
+    }
+}
